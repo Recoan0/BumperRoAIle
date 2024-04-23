@@ -47,6 +47,7 @@ class BumperRoAIle(gym.Env):
         # Initialize agents
         for color in range(self.n_agents):
             car = self.create_car(color)
+            self.space.add(*car.get_pymunk())
             self.agents.add(car)
 
         # Return initial observation
@@ -58,8 +59,9 @@ class BumperRoAIle(gym.Env):
         controls = list(map(lambda action: self.map_control(action), actions))
         [car.apply_control(control[0], control[1]) for car, control in zip(self.agents, controls)]
 
-        self.space.step(1 / self.fps)
         self.agents.update()
+        self.shrink_circle()
+        self.space.step(0.5 * 1 / self.fps)  # TODO
 
         if self.draw:
             self.render()
@@ -75,10 +77,15 @@ class BumperRoAIle(gym.Env):
         self.screen.fill((0, 0, 0))  # Clear the screen with black
 
         # Draw the shrinking arena
-        pygame.draw.circle(self.screen, (0, 0, 0), self.arena_center, int(self.current_radius), 1)
+        pygame.draw.circle(self.screen, (255, 255, 255),
+                           self.arena_center, int(self.current_radius), 1)
 
         # Draw each agent
         self.agents.draw(self.screen)
+
+        for agent in self.agents:
+            pygame.draw.rect(self.screen, (255, 0, 0), agent.rect, 1)  # Draw the bounding box in red
+            pygame.draw.circle(self.screen, (0, 255, 0), agent.rect.center, 5)
 
         pygame.display.flip()  # Update the full display Surface to the screen
 
@@ -87,12 +94,15 @@ class BumperRoAIle(gym.Env):
             if event.type == pygame.QUIT:
                 self.close()
 
-    def map_control(self, control) -> tuple[int, int]:
+    def map_control(self, control):
         # Compute acceleration and steering
         acceleration = self.acceleration_mapping[control // 3]
         steering = self.steering_mapping[control % 3]
 
         return acceleration, steering
+
+    def shrink_circle(self):
+        self.current_radius -= self.shrink_speed / self.fps
 
     def get_observations(self) -> np.ndarray:
         return np.array(list(map(lambda agent: agent.get_observation(), self.agents)))
