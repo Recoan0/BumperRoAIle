@@ -61,13 +61,12 @@ class BumperRoAIle(gym.Env):
 
         self.agents.update()
         self.shrink_circle()
-        self.space.step(0.5 * 1 / self.fps)  # TODO
+        self.space.step(1. / self.fps)
 
         if self.draw:
             self.render()
 
         self.clock.tick(self.fps)  # Limit the frame rate to FPSs
-        print('frame gen')
 
         # Return observation, reward, done, infos
         done = np.sum(self.get_alives()) > 1
@@ -82,10 +81,6 @@ class BumperRoAIle(gym.Env):
 
         # Draw each agent
         self.agents.draw(self.screen)
-
-        for agent in self.agents:
-            pygame.draw.rect(self.screen, (255, 0, 0), agent.rect, 1)  # Draw the bounding box in red
-            pygame.draw.circle(self.screen, (0, 255, 0), agent.rect.center, 5)
 
         pygame.display.flip()  # Update the full display Surface to the screen
 
@@ -124,6 +119,50 @@ class BumperRoAIle(gym.Env):
         pygame.quit()
 
 
+class ManualPlayer:
+    TICKS = 60
+
+    def __init__(self):
+        pygame.init()
+        self.clock = pygame.time.Clock()
+        self.tracks = []
+
+    def run(self):
+        game = BumperRoAIle(n_agents=1)
+        game.reset()
+        done = False
+        while not done:
+            pressed = pygame.key.get_pressed()
+            action = self.keys_to_choice(pressed)
+            print(action)
+            _ = game.step([action])
+            game.render()
+
+    @staticmethod
+    def keys_to_choice(pressed):
+        if pressed[pygame.K_UP]:
+            if pressed[pygame.K_LEFT]:
+                return 0
+            elif pressed[pygame.K_RIGHT]:
+                return 2
+            else:
+                return 1
+        elif pressed[pygame.K_DOWN]:
+            if pressed[pygame.K_LEFT]:
+                return 6
+            elif pressed[pygame.K_RIGHT]:
+                return 8
+            else:
+                return 7
+        else:
+            if pressed[pygame.K_LEFT]:
+                return 3
+            elif pressed[pygame.K_RIGHT]:
+                return 5
+            else:
+                return 4
+
+
 def main():
     env = BumperRoAIle()
     env.reset()
@@ -132,5 +171,10 @@ def main():
         env.step([0] * N_AGENTS)
 
 
+def manual_main():
+    ManualPlayer().run()
+
+
 if __name__ == "__main__":
-    main()
+    # main()
+    manual_main()
