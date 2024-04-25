@@ -32,6 +32,7 @@ class BumperRoAIle(gym.Env):
         # Setup Pymunk (physics)
         self.space = pymunk.Space()
         self.space.gravity = (0, 0)
+        self.space.damping = 0.7
         self.agents = pygame.sprite.Group()
         self.arena_center = Vector2(AREA_CENTRE)
         self.current_radius = start_radius
@@ -57,9 +58,9 @@ class BumperRoAIle(gym.Env):
         assert len(actions) == len(self.agents), f"Need {len(self.agents)} actions, got {len(actions)}"
         # Apply actions, update pymunk space, handle shrinking, calculate rewards, etc.
         controls = list(map(lambda action: self.map_control(action), actions))
-        [car.apply_control(control[0], control[1]) for car, control in zip(self.agents, controls)]
+        [car.apply_control(acceleration, steering) for car, (acceleration, steering) in zip(self.agents, controls)]
 
-        self.agents.update()
+        self.agents.update(AREA_CENTRE, self.current_radius)
         self.shrink_circle()
         self.space.step(1. / self.fps)
 
@@ -69,7 +70,7 @@ class BumperRoAIle(gym.Env):
         self.clock.tick(self.fps)  # Limit the frame rate to FPSs
 
         # Return observation, reward, done, infos
-        done = np.sum(self.get_alives()) > 1
+        done = np.sum(self.get_alives()) < 2
         return self.get_observations(), self.get_rewards(), done, {}
 
     def render(self):
@@ -93,7 +94,6 @@ class BumperRoAIle(gym.Env):
         # Compute acceleration and steering
         acceleration = self.acceleration_mapping[control // 3]
         steering = self.steering_mapping[control % 3]
-
         return acceleration, steering
 
     def shrink_circle(self):
@@ -128,14 +128,13 @@ class ManualPlayer:
         self.tracks = []
 
     def run(self):
-        game = BumperRoAIle(n_agents=1)
+        game = BumperRoAIle(n_agents=2)
         game.reset()
         done = False
         while not done:
             pressed = pygame.key.get_pressed()
             action = self.keys_to_choice(pressed)
-            print(action)
-            _ = game.step([action])
+            _, _, done, _ = game.step([action, 4])
             game.render()
 
     @staticmethod
