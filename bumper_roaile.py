@@ -111,6 +111,7 @@ class BumperRoAIle(gym.Env):
     def create_car(self, color: int) -> BumperCar:
         angle = np.random.uniform(0, 360)
         offset = Vector2(*np.random.uniform(-self.radius * 0.9, self.radius * 0.9, 2))
+        print(offset)
         location = Vector2(AREA_CENTRE) + Vector2(offset)
         return BumperCar(angle, location, COLORS[color])
 
@@ -121,6 +122,7 @@ class BumperRoAIle(gym.Env):
 
 class ManualPlayer:
     TICKS = 60
+    NP_CARS = 2
 
     def __init__(self):
         pygame.init()
@@ -128,13 +130,13 @@ class ManualPlayer:
         self.tracks = []
 
     def run(self):
-        game = BumperRoAIle(n_agents=2)
+        game = BumperRoAIle(n_agents=self.NP_CARS + 1)
         game.reset()
         done = False
         while not done:
             pressed = pygame.key.get_pressed()
             action = self.keys_to_choice(pressed)
-            _, _, done, _ = game.step([action, 4])
+            _, _, done, _ = game.step([action] + [4] * self.NP_CARS)
             game.render()
 
     @staticmethod
