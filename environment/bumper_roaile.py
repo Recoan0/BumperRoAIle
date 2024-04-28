@@ -4,8 +4,8 @@ import pymunk
 import gymnasium as gym
 
 from pygame.math import Vector2
-from bumper_car import BumperCar
-from hyper_params import *
+from object.line_vision_car import LineVisionCar
+from const.hyper_params import *
 
 
 class BumperRoAIle(gym.Env):
@@ -24,6 +24,9 @@ class BumperRoAIle(gym.Env):
         self.shrink_speed = shrink_speed
         self.draw = True
         self.fps = fps
+        self.agents = pygame.sprite.Group()
+        self.arena_center = Vector2(AREA_CENTRE)
+        self.current_radius = start_radius
 
         # Define mappings for acceleration based on control ranges
         self.acceleration_mapping = {0: 1, 1: 0, 2: -.5}
@@ -33,9 +36,6 @@ class BumperRoAIle(gym.Env):
         self.space = pymunk.Space()
         self.space.gravity = (0, 0)
         self.space.damping = 0.7
-        self.agents = pygame.sprite.Group()
-        self.arena_center = Vector2(AREA_CENTRE)
-        self.current_radius = start_radius
 
         # Set Gym Variables
         self.action_space = gym.spaces.Discrete(ACTIONS)
@@ -100,7 +100,7 @@ class BumperRoAIle(gym.Env):
         self.current_radius -= self.shrink_speed / self.fps
 
     def get_observations(self) -> np.ndarray:
-        return np.array(list(map(lambda agent: agent.get_observation(), self.agents)))
+        return np.array(list(map(lambda agent: agent.get_observation(self), self.agents)))
 
     def get_rewards(self) -> np.ndarray:
         return self.get_alives() * 2 - 1  # TODO
@@ -108,12 +108,12 @@ class BumperRoAIle(gym.Env):
     def get_alives(self) -> np.ndarray:
         return np.array(list(map(lambda agent: agent.is_alive, self.agents)))
 
-    def create_car(self, color: int) -> BumperCar:
+    def create_car(self, color: int) -> LineVisionCar:
         angle = np.random.uniform(0, 360)
         offset = Vector2(*np.random.uniform(-self.radius * 0.9, self.radius * 0.9, 2))
         print(offset)
         location = Vector2(AREA_CENTRE) + Vector2(offset)
-        return BumperCar(angle, location, COLORS[color])
+        return LineVisionCar(angle, location, COLORS[color])
 
     def close(self):
         # Clean up Pygame or other graphical resources

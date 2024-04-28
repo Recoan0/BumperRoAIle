@@ -1,4 +1,6 @@
 import os
+from math import sin, cos, radians
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pygame
@@ -6,13 +8,13 @@ import pymunk
 from pygame.color import THECOLORS
 from pygame.math import Vector2
 
-from hyper_params import *
-from line_vision import LineVision
+from const.hyper_params import *
 
 
-class BumperCar(LineVision, pygame.sprite.Sprite):
+class BumperCar(pygame.sprite.Sprite, ABC):
     def __init__(self, spawn_angle: float, spawn_location: Vector2, color: str,
                  top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
+        super().__init__()
         self.height, self.width = CART_SIZE
         self.top_speed = top_speed
         self.steering_speed = steering_speed
@@ -29,8 +31,6 @@ class BumperCar(LineVision, pygame.sprite.Sprite):
         self.shape.elasticity = 0.5  # Adjust elasticity as needed
         # self.shape.friction = 0.5  # Adjust friction as needed
         self.shape.color = THECOLORS[color]
-
-        super().__init__(CART_SIZE, spawn_angle, self.body)
 
         # Pygame drawing
         self.car_image = self.load_car_image()
@@ -56,9 +56,17 @@ class BumperCar(LineVision, pygame.sprite.Sprite):
         impulse = Vector2(force, 0).rotate(-self.body.angle)
         self.body.apply_force_at_local_point((impulse.x, impulse.y))
 
-    def get_observation(self) -> np.ndarray:
-        obs = np.array([self.body.angular_velocity, *self.get_relative_velocity()])
-        return obs  # TODO
+    @abstractmethod
+    def get_observation(self, env) -> np.ndarray:
+        pass
+
+    def get_offsets(self):
+        # Returns front_offset, side_offset
+        return Vector2((cos(radians(-self.angle)) * self.height, sin(radians(-self.angle)) * self.height)), \
+            Vector2((-sin(radians(-self.angle)) * self.width / 4, cos(radians(-self.angle)) * self.width / 4))
+
+    def get_global_point(self, offset):
+        return self.body.position + offset
 
     def is_in_radius(self, space_centre: Vector2, space_radius: float) -> bool:
         return (Vector2(self.body.position) - space_centre).length() < space_radius
