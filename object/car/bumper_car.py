@@ -1,6 +1,6 @@
 import os
-from math import sin, cos, radians
 from abc import ABC, abstractmethod
+from math import sin, cos, radians
 
 import numpy as np
 import pygame
@@ -25,7 +25,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
 
         # Pymunk body and shape
         self.body = pymunk.Body(mass, pymunk.moment_for_box(mass, CART_SIZE))
-        self.body.position = spawn_location.x, spawn_location.y
+        self.body.position = (spawn_location.x, spawn_location.y)
         self.body.angle = -self.angle * np.pi / 180  # Convert to radians and reverse direction
         self.shape = pymunk.Poly.create_box(self.body, CART_SIZE)
         self.shape.elasticity = 0.5  # Adjust elasticity as needed
@@ -56,14 +56,24 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         impulse = Vector2(force, 0).rotate(-self.body.angle)
         self.body.apply_force_at_local_point((impulse.x, impulse.y))
 
-    @abstractmethod
-    def get_observation(self, env) -> np.ndarray:
-        pass
-
     def get_offsets(self):
         # Returns front_offset, side_offset
-        return Vector2((cos(radians(-self.angle)) * self.height, sin(radians(-self.angle)) * self.height)), \
-            Vector2((-sin(radians(-self.angle)) * self.width / 4, cos(radians(-self.angle)) * self.width / 4))
+        return Vector2((cos(radians(-self.angle)) * self.height / 2, sin(radians(-self.angle)) * self.height / 2)), \
+            Vector2((-sin(radians(-self.angle)) * self.width / 2, cos(radians(-self.angle)) * self.width / 2))
+
+    def get_hitbox_lines(self):
+        # Returns hitbox lines in clockwise direction
+        front_offset, side_offset = self.get_offsets()
+        front_line = (self.get_global_point(np.add(front_offset, side_offset)),
+                      self.get_global_point(np.subtract(front_offset, side_offset)))
+        right_line = (self.get_global_point(np.add(front_offset, side_offset)),
+                      self.get_global_point(np.subtract(side_offset, front_offset)))
+        rear_line = (self.get_global_point(np.subtract(side_offset, front_offset)),
+                     self.get_global_point(np.subtract(np.negative(front_offset), side_offset)))
+        left_line = (self.get_global_point(np.subtract(front_offset, side_offset)),
+                     self.get_global_point(np.subtract(np.negative(side_offset), front_offset)))
+
+        return front_line, right_line, rear_line, left_line
 
     def get_global_point(self, offset):
         return self.body.position + offset
@@ -87,3 +97,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         car_image = pygame.image.load(image_path).convert_alpha()
         car_image = pygame.transform.scale(car_image, CART_SIZE)
         return car_image
+
+    @abstractmethod
+    def draw_vision(self, screen) -> None:
+        return

@@ -4,7 +4,7 @@ import pymunk
 import gymnasium as gym
 
 from pygame.math import Vector2
-from object.line_vision_car import LineVisionCar
+from object.car.line_vision_car import LineVisionCar
 from const.hyper_params import *
 
 
@@ -69,26 +69,33 @@ class BumperRoAIle(gym.Env):
 
         self.clock.tick(self.fps)  # Limit the frame rate to FPSs
 
-        # Return observation, reward, done, infos
+        # Calculate returns: observations, rewards, done, infos
+        obs = self.get_observations()
+        rewards = self.get_rewards()
         done = np.sum(self.get_alives()) < 2
-        return self.get_observations(), self.get_rewards(), done, {}
-
-    def render(self):
-        self.screen.fill((0, 0, 0))  # Clear the screen with black
-
-        # Draw the shrinking arena
-        pygame.draw.circle(self.screen, (255, 255, 255),
-                           self.arena_center, int(self.current_radius), 1)
-
-        # Draw each agent
-        self.agents.draw(self.screen)
-
-        pygame.display.flip()  # Update the full display Surface to the screen
 
         # Handle window events (e.g., close the window)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.close()
+
+        return obs, rewards, done, {}
+
+    def render(self):
+        self.screen.fill((0, 0, 0))
+        surface = self.screen.convert_alpha()
+        surface.fill((0, 0, 0, 0))  # Clear the screen with black
+
+        # Draw the shrinking arena
+        pygame.draw.circle(surface, (255, 255, 255, 255),
+                           self.arena_center, int(self.current_radius), 1)
+
+        # Draw each agent and its vision
+        self.agents.draw(surface)
+        for agent in self.agents:
+            agent.draw_vision(surface)
+        self.screen.blit(surface, (0, 0))
+        pygame.display.flip()  # Update the full display Surface to the screen
 
     def map_control(self, control):
         # Compute acceleration and steering
@@ -100,10 +107,11 @@ class BumperRoAIle(gym.Env):
         self.current_radius -= self.shrink_speed / self.fps
 
     def get_observations(self) -> np.ndarray:
-        return np.array(list(map(lambda agent: agent.get_observation(self), self.agents)))
+        return np.array(list(
+            map(lambda agent: agent.get_observation(self), self.agents)))
 
     def get_rewards(self) -> np.ndarray:
-        return self.get_alives() * 2 - 1  # TODO
+        return self.get_alives() * 2 - 1  # TODO give reward for eliminating other agents
 
     def get_alives(self) -> np.ndarray:
         return np.array(list(map(lambda agent: agent.is_alive, self.agents)))
