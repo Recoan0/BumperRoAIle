@@ -23,7 +23,6 @@ class LineVisionCar(BumperCar):
         intersect_dists = [line.calculate_collisions(env, enemies) for line in self.vision_lines]
         flattened_intersect_dists = np.concatenate(intersect_dists)
         obs = np.array([self.body.angular_velocity, *self.get_relative_velocity(), *flattened_intersect_dists])
-        print(obs.shape)
         return obs
 
     def create_vision_lines(self) -> list[VisionLine]:

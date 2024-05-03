@@ -27,9 +27,10 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         self.body = pymunk.Body(mass, pymunk.moment_for_box(mass, CART_SIZE))
         self.body.position = (spawn_location.x, spawn_location.y)
         self.body.angle = -self.angle * np.pi / 180  # Convert to radians and reverse direction
+        self.body.car = self  # Store reference to self for collision reward
         self.shape = pymunk.Poly.create_box(self.body, CART_SIZE)
+        self.shape.collision_type = BUMPER_CAR_COLLISION_TYPE
         self.shape.elasticity = 0.5  # Adjust elasticity as needed
-        # self.shape.friction = 0.5  # Adjust friction as needed
         self.shape.color = THECOLORS[color]
 
         # Pygame drawing
@@ -38,6 +39,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         self.rect = self.image.get_rect(center=spawn_location)
 
         self.is_alive = True
+        self.last_collided_with = None
 
     def update(self, space_centre, space_radius) -> None:
         # Update the sprite's position to match the physics body

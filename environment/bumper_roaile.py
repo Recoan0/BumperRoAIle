@@ -4,6 +4,7 @@ import pymunk
 import gymnasium as gym
 
 from pygame.math import Vector2
+from object.car.bumper_car import BumperCar
 from object.car.line_vision_car import LineVisionCar
 from const.hyper_params import *
 
@@ -36,6 +37,8 @@ class BumperRoAIle(gym.Env):
         self.space = pymunk.Space()
         self.space.gravity = (0, 0)
         self.space.damping = 0.7
+        collision_handler = self.space.add_collision_handler(BUMPER_CAR_COLLISION_TYPE, BUMPER_CAR_COLLISION_TYPE)
+        collision_handler.pre_solve = self.car_collision_handler
 
         # Set Gym Variables
         self.action_space = gym.spaces.Discrete(ACTIONS)
@@ -122,6 +125,15 @@ class BumperRoAIle(gym.Env):
         print(offset)
         location = Vector2(AREA_CENTRE) + Vector2(offset)
         return LineVisionCar(angle, location, COLORS[color])
+
+    @staticmethod
+    def car_collision_handler(arbiter, space, data):
+        car1 = arbiter.shapes[0].body.car
+        car2 = arbiter.shapes[1].body.car
+        car1.last_collided_with = car2
+        car2.last_collided_with = car1
+        print(f"COLLISION: {car1}, {car2}")
+        return True
 
     def close(self):
         # Clean up Pygame or other graphical resources
