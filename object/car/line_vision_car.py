@@ -9,9 +9,9 @@ from const.hyper_params import *
 
 
 class LineVisionCar(BumperCar):
-    def __init__(self, spawn_angle: float, spawn_location: Vector2, color: str,
+    def __init__(self, car_nr: int, spawn_angle: float, spawn_location: Vector2, color: str,
                  top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
-        super().__init__(spawn_angle, spawn_location, color, top_speed, steering_speed, acceleration, mass)
+        super().__init__(car_nr, spawn_angle, spawn_location, color, top_speed, steering_speed, acceleration, mass)
         self.vision_lines: list[VisionLine] = []
 
     def get_observation(self, env) -> np.ndarray:

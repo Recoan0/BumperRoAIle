@@ -12,9 +12,10 @@ from const.hyper_params import *
 
 
 class BumperCar(pygame.sprite.Sprite, ABC):
-    def __init__(self, spawn_angle: float, spawn_location: Vector2, color: str,
+    def __init__(self, car_nr: int, spawn_angle: float, spawn_location: Vector2, color: str,
                  top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
         super().__init__()
+        self.car_nr = car_nr
         self.height, self.width = CART_SIZE
         self.top_speed = top_speed
         self.steering_speed = steering_speed
@@ -40,6 +41,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
 
         self.is_alive = True
         self.last_collided_with = None
+        self.step_extra_score = 0.
 
     def update(self, space_centre, space_radius) -> None:
         # Update the sprite's position to match the physics body
@@ -80,8 +82,20 @@ class BumperCar(pygame.sprite.Sprite, ABC):
     def get_global_point(self, offset):
         return self.body.position + offset
 
+    def check_if_alive(self, space_centre: Vector2, space_radius: float):
+        if not self.is_alive: return
+        died = not self.is_in_radius(space_centre, space_radius)
+        if died:
+            self.attribute_score_to_killer()
+
     def is_in_radius(self, space_centre: Vector2, space_radius: float) -> bool:
         return (Vector2(self.body.position) - space_centre).length() < space_radius
+
+    def attribute_score_to_killer(self) -> None:
+        self.last_collided_with.add_score(SCORES.KILL)
+
+    def add_score(self, score: float) -> None:
+        self.step_extra_score += score
 
     def kill(self) -> None:
         self.is_alive = False

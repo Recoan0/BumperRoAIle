@@ -11,6 +11,14 @@ SHRINK_SPEED = 6.
 
 FPS = 60
 
+
+class SCORES:
+    KILL = 0.5
+    WIN = 1.
+    DIED = -1.
+    ALIVE = 0.05
+
+
 # BUMPER CAR
 CART_SIZE = (50, 30)
 VISION_LINE_LENGTH = 400

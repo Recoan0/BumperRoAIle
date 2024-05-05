@@ -49,8 +49,8 @@ class BumperRoAIle(gym.Env):
         self.current_radius = self.radius
 
         # Initialize agents
-        for color in range(self.n_agents):
-            car = self.create_car(color)
+        for car_nr in range(self.n_agents):
+            car = self.create_car(car_nr)
             self.space.add(*car.get_pymunk())
             self.agents.add(car)
 
@@ -119,11 +119,11 @@ class BumperRoAIle(gym.Env):
     def get_alives(self) -> np.ndarray:
         return np.array(list(map(lambda agent: agent.is_alive, self.agents)))
 
-    def create_car(self, color: int) -> LineVisionCar:
+    def create_car(self, car_nr: int) -> LineVisionCar:
         car_angle = np.random.uniform(0, 360)
         offset = Vector2.from_polar((np.random.uniform(self.radius), np.random.uniform(360)))
         location = Vector2(AREA_CENTRE) + offset
-        return LineVisionCar(car_angle, location, COLORS[color])
+        return LineVisionCar(car_nr, car_angle, location, COLORS[car_nr])
 
     @staticmethod
     def car_collision_handler(arbiter, space, data):
