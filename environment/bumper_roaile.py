@@ -122,11 +122,11 @@ class BumperRoAIle(gym.Env):
 
     def get_rewards(self) -> np.ndarray:
         alive_scores = self.get_alives() * SCORES.ALIVE
-        extra_scores = np.array([agent.get_and_reset_extra_score() for agent in self.agents])
+        extra_scores = np.array([agent.get_and_reset_extra_score() for agent in self.agents], dtype=np.float32)
         return alive_scores + extra_scores
 
     def get_alives(self) -> np.ndarray:
-        return np.array(list(map(lambda agent: agent.is_alive, self.agents)))
+        return np.array([agent.is_alive for agent in self.agents], dtype=np.float32)
 
     def create_car(self, car_nr: int, car_type=LineVisionCar) -> BumperCar:
         car_angle = np.random.uniform(0, 360)
