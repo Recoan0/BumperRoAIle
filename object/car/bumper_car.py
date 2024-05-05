@@ -23,6 +23,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         self.mass = mass
         self.color = color
         self.angle = spawn_angle
+        self.observation_space = None
 
         # Pymunk body and shape
         self.body = pymunk.Body(mass, pymunk.moment_for_box(mass, CART_SIZE))

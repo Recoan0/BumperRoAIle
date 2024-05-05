@@ -13,6 +13,7 @@ class LineVisionCar(BumperCar):
                  top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
         super().__init__(car_nr, spawn_angle, spawn_location, color, top_speed, steering_speed, acceleration, mass)
         self.vision_lines: list[VisionLine] = []
+        self.observation_space = (len(self.create_vision_lines()),)
 
     def get_observation(self, env) -> np.ndarray:
         self.vision_lines = self.create_vision_lines()
@@ -26,9 +27,9 @@ class LineVisionCar(BumperCar):
     def create_vision_lines(self) -> list[VisionLine]:
         front_offset, side_offset = self.get_offsets()
         vision_params = self.calculate_vision_line_params(front_offset, side_offset)
-        return list(map(lambda x: self.get_vision_line(*x), vision_params))
+        return [self.get_vision_line(offset, angle) for offset, angle in vision_params]
 
-    def get_vision_line(self, offset, angle):
+    def get_vision_line(self, offset, angle) -> VisionLine:
         offset_global = self.get_global_point(offset)
         return VisionLine(offset_global, offset_global + (cos(radians(-self.angle + angle)) * VISION_LINE_LENGTH,
                                                           sin(radians(-self.angle + angle)) * VISION_LINE_LENGTH))

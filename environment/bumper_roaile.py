@@ -10,8 +10,9 @@ from const.hyper_params import *
 
 
 class BumperRoAIle(gym.Env):
-    def __init__(self, n_agents=N_AGENTS, start_radius=START_RADIUS, shrink_speed=SHRINK_SPEED, fps=FPS):
-        super(BumperRoAIle, self).__init__()
+    def __init__(self, n_agents=N_AGENTS, agent_types=None,
+                 start_radius=START_RADIUS, shrink_speed=SHRINK_SPEED, fps=FPS):
+        super().__init__()
 
         # Initialize Pygame
         pygame.init()
@@ -21,6 +22,8 @@ class BumperRoAIle(gym.Env):
 
         # Setup env
         self.n_agents = n_agents
+        self.agent_types = [LineVisionCar] * n_agents if not agent_types else agent_types
+        assert n_agents == len(self.agent_types), "Must have n_agents equal to number of agents"
         self.radius = start_radius
         self.shrink_speed = shrink_speed
         self.draw = True
@@ -42,15 +45,15 @@ class BumperRoAIle(gym.Env):
 
         # Set Gym Variables
         self.action_space = gym.spaces.Discrete(ACTIONS)
-        self.observation_space = gym.spaces.Box(low=0, high=800, shape=(n_agents * 2,), dtype=np.float32)
+        self.observation_space = None
 
     def reset(self, **kwargs) -> np.ndarray:
         self.agents = pygame.sprite.Group()
         self.current_radius = self.radius
 
         # Initialize agents
-        for car_nr in range(self.n_agents):
-            car = self.create_car(car_nr)
+        for car_nr, car_type in enumerate(self.agent_types):
+            car = self.create_car(car_nr, car_type)
             self.space.add(*car.get_pymunk())
             self.agents.add(car)
 
@@ -121,11 +124,11 @@ class BumperRoAIle(gym.Env):
     def get_alives(self) -> np.ndarray:
         return np.array(list(map(lambda agent: agent.is_alive, self.agents)))
 
-    def create_car(self, car_nr: int) -> LineVisionCar:
+    def create_car(self, car_nr: int, car_type=LineVisionCar) -> BumperCar:
         car_angle = np.random.uniform(0, 360)
         offset = Vector2.from_polar((np.random.uniform(self.radius), np.random.uniform(360)))
         location = Vector2(AREA_CENTRE) + offset
-        return LineVisionCar(car_nr, car_angle, location, COLORS[car_nr])
+        return car_type(car_nr, car_angle, location, COLORS[car_nr])
 
     @staticmethod
     def car_collision_handler(arbiter, space, data):
