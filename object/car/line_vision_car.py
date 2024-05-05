@@ -1,6 +1,5 @@
-from math import sin, cos, radians
-
 import numpy as np
+import gymnasium as gym
 from pygame.math import Vector2
 
 from object.car.bumper_car import BumperCar
@@ -12,11 +11,11 @@ class LineVisionCar(BumperCar):
     def __init__(self, car_nr: int, spawn_angle: float, spawn_location: Vector2, color: str,
                  top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
         super().__init__(car_nr, spawn_angle, spawn_location, color, top_speed, steering_speed, acceleration, mass)
-        self.vision_lines: list[VisionLine] = []
-        self.observation_space = (len(self.create_vision_lines()),)
+        self.vision_lines: list[VisionLine] = self.create_vision_lines()
+        self.observation_space = gym.spaces.Box(-1., 1., shape=(3 + len(self.vision_lines),), dtype=np.float32)
 
     def get_observation(self, env) -> np.ndarray:
-        self.vision_lines = self.create_vision_lines()
+        self.update_vision_lines()
         enemies = env.agents.sprites()
         enemies.remove(self)
         intersect_dists = [line.calculate_collisions(env, enemies) for line in self.vision_lines]
@@ -29,10 +28,15 @@ class LineVisionCar(BumperCar):
         vision_params = self.calculate_vision_line_params(front_offset, side_offset)
         return [self.get_vision_line(offset, angle) for offset, angle in vision_params]
 
-    def get_vision_line(self, offset, angle) -> VisionLine:
+    def update_vision_lines(self):
+        new_offset = self.get_offsets()
+        new_vision_params = self.calculate_vision_line_params(*new_offset)
+        [vision_line.update_with_offset(self.get_global_point(offset), - self.angle + angle)
+         for vision_line, (offset, angle) in zip(self.vision_lines, new_vision_params)]
+
+    def get_vision_line(self, offset, angle, length=CAR.VISION_LINE_LENGTH) -> VisionLine:
         offset_global = self.get_global_point(offset)
-        return VisionLine(offset_global, offset_global + (cos(radians(-self.angle + angle)) * VISION_LINE_LENGTH,
-                                                          sin(radians(-self.angle + angle)) * VISION_LINE_LENGTH))
+        return VisionLine(offset_global, -self.angle + angle, length)
 
     def draw_vision(self, screen) -> None:
         if self.is_alive:

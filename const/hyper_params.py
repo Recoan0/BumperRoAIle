@@ -1,15 +1,15 @@
-# ENV
-AREA_WIDTH, AREA_HEIGHT = 1000, 1000
-AREA_SIZE = (AREA_WIDTH, AREA_HEIGHT)
-AREA_CENTRE = (AREA_WIDTH / 2, AREA_HEIGHT / 2)
-ACTIONS = 9
-COLORS = ['blue', 'green', 'red', 'yellow', 'pink', 'orange']
+class ENV:
+    AREA_WIDTH, AREA_HEIGHT = 1000, 1000
+    AREA_SIZE = (AREA_WIDTH, AREA_HEIGHT)
+    AREA_CENTRE = (AREA_WIDTH / 2, AREA_HEIGHT / 2)
+    ACTIONS = 9
+    COLORS = ['blue', 'green', 'red', 'yellow', 'pink', 'orange']
 
-N_AGENTS = 6
-START_RADIUS = 400.
-SHRINK_SPEED = 6.
+    N_AGENTS = 6
+    START_RADIUS = 400.
+    SHRINK_SPEED = 6.
 
-FPS = 60
+    FPS = 60
 
 
 class SCORES:
@@ -19,11 +19,13 @@ class SCORES:
     ALIVE = 0.05
 
 
-# BUMPER CAR
-CART_SIZE = (50, 30)
-VISION_LINE_LENGTH = 400
-BUMPER_CAR_COLLISION_TYPE = 1
+class CAR:
+    CART_SIZE = (50, 30)
+    VISION_LINE_LENGTH = 400
+    COLLISION_TYPE = 1
+    MAX_ANGULAR_VELOCITY = 2.
 
-# COLORS
-RED = (255, 0, 0)
-PURPLE = (128, 0, 128)
+
+class COLORS:
+    RED = (255, 0, 0)
+    PURPLE = (128, 0, 128)

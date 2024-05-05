@@ -10,13 +10,13 @@ from const.hyper_params import *
 
 
 class BumperRoAIle(gym.Env):
-    def __init__(self, n_agents=N_AGENTS, agent_types=None,
-                 start_radius=START_RADIUS, shrink_speed=SHRINK_SPEED, fps=FPS):
+    def __init__(self, n_agents=ENV.N_AGENTS, agent_types=None,
+                 start_radius=ENV.START_RADIUS, shrink_speed=ENV.SHRINK_SPEED, fps=ENV.FPS):
         super().__init__()
 
         # Initialize Pygame
         pygame.init()
-        self.screen = pygame.display.set_mode(AREA_SIZE)
+        self.screen = pygame.display.set_mode(ENV.AREA_SIZE)
         pygame.display.set_caption("Bumper Car Battle Royale")
         self.clock = pygame.time.Clock()
 
@@ -29,7 +29,7 @@ class BumperRoAIle(gym.Env):
         self.draw = True
         self.fps = fps
         self.agents = pygame.sprite.Group()
-        self.arena_center = Vector2(AREA_CENTRE)
+        self.arena_center = Vector2(ENV.AREA_CENTRE)
         self.current_radius = start_radius
 
         # Define mappings for acceleration based on control ranges
@@ -40,22 +40,24 @@ class BumperRoAIle(gym.Env):
         self.space = pymunk.Space()
         self.space.gravity = (0, 0)
         self.space.damping = 0.7
-        collision_handler = self.space.add_collision_handler(BUMPER_CAR_COLLISION_TYPE, BUMPER_CAR_COLLISION_TYPE)
+        collision_handler = self.space.add_collision_handler(CAR.COLLISION_TYPE, CAR.COLLISION_TYPE)
         collision_handler.pre_solve = self.car_collision_handler
 
         # Set Gym Variables
-        self.action_space = gym.spaces.Discrete(ACTIONS)
-        self.observation_space = None
+        self.action_space = gym.spaces.Discrete(ENV.ACTIONS)
+        self.observation_space = gym.spaces.Tuple([])
 
     def reset(self, **kwargs) -> np.ndarray:
         self.agents = pygame.sprite.Group()
         self.current_radius = self.radius
+        obs_spaces = []
 
         # Initialize agents
         for car_nr, car_type in enumerate(self.agent_types):
             car = self.create_car(car_nr, car_type)
             self.space.add(*car.get_pymunk())
             self.agents.add(car)
+            obs_spaces.append(car.observation_space)
 
         # Return initial observation
         return self.get_observations()
@@ -66,7 +68,7 @@ class BumperRoAIle(gym.Env):
         controls = list(map(lambda action: self.map_control(action), actions))
         [car.apply_control(acceleration, steering) for car, (acceleration, steering) in zip(self.agents, controls)]
 
-        self.agents.update(AREA_CENTRE, self.current_radius)
+        self.agents.update(self.arena_center, self.current_radius)
         self.shrink_circle()
         self.space.step(1. / self.fps)
 
@@ -79,6 +81,9 @@ class BumperRoAIle(gym.Env):
         obs = self.get_observations()
         rewards = self.get_rewards()
         done = np.sum(self.get_alives()) < 2
+
+        if done:
+            rewards += self.get_alives() * SCORES.WIN
 
         # Handle window events (e.g., close the window)
         for event in pygame.event.get():
@@ -119,7 +124,7 @@ class BumperRoAIle(gym.Env):
     def get_rewards(self) -> np.ndarray:
         alive_scores = self.get_alives() * SCORES.ALIVE
         extra_scores = np.array([agent.get_and_reset_extra_score() for agent in self.agents])
-        return alive_scores + extra_scores  # TODO give reward for eliminating other agents
+        return alive_scores + extra_scores
 
     def get_alives(self) -> np.ndarray:
         return np.array(list(map(lambda agent: agent.is_alive, self.agents)))
@@ -127,8 +132,8 @@ class BumperRoAIle(gym.Env):
     def create_car(self, car_nr: int, car_type=LineVisionCar) -> BumperCar:
         car_angle = np.random.uniform(0, 360)
         offset = Vector2.from_polar((np.random.uniform(self.radius), np.random.uniform(360)))
-        location = Vector2(AREA_CENTRE) + offset
-        return car_type(car_nr, car_angle, location, COLORS[car_nr])
+        location = Vector2(self.arena_center) + offset
+        return car_type(car_nr, car_angle, location, ENV.COLORS[car_nr])
 
     @staticmethod
     def car_collision_handler(arbiter, space, data):
@@ -192,7 +197,7 @@ def main():
     env.reset()
     done = False
     while not done:
-        env.step([0] * N_AGENTS)
+        env.step([0] * ENV.N_AGENTS)
 
 
 def manual_main():

@@ -16,7 +16,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
                  top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
         super().__init__()
         self.car_nr = car_nr
-        self.height, self.width = CART_SIZE
+        self.height, self.width = CAR.CART_SIZE
         self.top_speed = top_speed
         self.steering_speed = steering_speed
         self.acceleration = acceleration
@@ -26,12 +26,12 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         self.observation_space = None
 
         # Pymunk body and shape
-        self.body = pymunk.Body(mass, pymunk.moment_for_box(mass, CART_SIZE))
+        self.body = pymunk.Body(mass, pymunk.moment_for_box(mass, CAR.CART_SIZE))
         self.body.position = (spawn_location.x, spawn_location.y)
         self.body.angle = -self.angle * np.pi / 180  # Convert to radians and reverse direction
         self.body.car = self  # Store reference to self for collision reward
-        self.shape = pymunk.Poly.create_box(self.body, CART_SIZE)
-        self.shape.collision_type = BUMPER_CAR_COLLISION_TYPE
+        self.shape = pymunk.Poly.create_box(self.body, CAR.CART_SIZE)
+        self.shape.collision_type = CAR.COLLISION_TYPE
         self.shape.elasticity = 0.5  # Adjust elasticity as needed
         self.shape.color = THECOLORS[color]
 
@@ -120,7 +120,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(current_dir, "car.png")
         car_image = pygame.image.load(image_path).convert_alpha()
-        car_image = pygame.transform.scale(car_image, CART_SIZE)
+        car_image = pygame.transform.scale(car_image, CAR.CART_SIZE)
         return car_image
 
     @abstractmethod

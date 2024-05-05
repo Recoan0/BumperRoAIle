@@ -1,3 +1,4 @@
+from math import sin, cos, radians
 from skspatial.objects import Line, Circle
 from pygame.math import Vector2
 import pygame
@@ -6,10 +7,16 @@ from const.hyper_params import *
 
 
 class VisionLine:
-    def __init__(self, start_point: Vector2, end_point: Vector2, color=(255, 255, 255), opacity=96):
+    def __init__(self, start_point: Vector2, angle: float, length: float,
+                 normalized_distance=True, color=(255, 255, 255), opacity=96):
         self.start_point = start_point
-        self.end_point = end_point
-        self.line = Line.from_points(start_point, end_point)
+        self.angle = angle
+        self.end_offset = Vector2(cos(radians(angle)) * length, sin(radians(angle)) * length)
+        self.end_point = start_point + self.end_offset
+        self.length = length
+        self.normalized_distance = normalized_distance
+        self.allowed_draw_distance = 1 if normalized_distance else CAR.VISION_LINE_LENGTH
+        self.line = Line.from_points(self.start_point, self.end_point)
         self.color = color
         self.opacity = opacity
         self.enemy_collision_distance = 0.
@@ -20,7 +27,19 @@ class VisionLine:
     def calculate_collisions(self, env, enemies):
         self.enemy_collision_distance, self.enemy_collision_point = self.calculate_nearest_enemy_collision(enemies)
         self.circle_collision_distance, self.circle_collision_point = self.calculate_nearest_circle_collision(env)
+        if self.normalized_distance:
+            self.enemy_collision_distance /= self.length + 1
+            self.circle_collision_distance /= self.length + 1
         return self.enemy_collision_distance, self.circle_collision_distance
+
+    def update_with_offset(self, new_start_point, new_angle):
+        self.start_point = new_start_point
+        self.angle = new_angle
+        self.end_offset = Vector2(cos(radians(new_angle)) * self.length,
+                                  sin(radians(new_angle)) * self.length)
+        self.end_point = new_start_point + self.end_offset
+        self.line = Line.from_points(self.start_point, self.end_point)
+        pass
 
     def calculate_nearest_enemy_collision(self, enemies):
         return min([self.get_enemy_collision_distance(enemy) for enemy in enemies])
@@ -28,7 +47,7 @@ class VisionLine:
     def calculate_nearest_circle_collision(self, env):
         point_a, point_b = self.calc_circle_intersect(env)
         if point_a is None or point_b is None:
-            return VISION_LINE_LENGTH + 1, None
+            return self.length + 1, None
         direction = Vector2(self.end_point - self.start_point)
         vec2a, vec2b = (Vector2(*point_a) - self.start_point), (Vector2(*point_b) - self.start_point)
         if direction.dot(vec2a) > 0:
@@ -44,10 +63,10 @@ class VisionLine:
 
     def draw(self, screen):  # Call after self.calculate_collisions()
         pygame.draw.line(screen, self.color + (self.opacity,), self.start_point, self.end_point)
-        if self.enemy_collision_point is not None and self.enemy_collision_distance <= VISION_LINE_LENGTH:
-            pygame.draw.circle(screen, RED, self.enemy_collision_point, 5)
-        if self.circle_collision_point is not None and self.circle_collision_distance <= VISION_LINE_LENGTH:
-            pygame.draw.circle(screen, PURPLE, self.circle_collision_point, 5)
+        if self.enemy_collision_point is not None and self.enemy_collision_distance <= self.allowed_draw_distance:
+            pygame.draw.circle(screen, COLORS.RED, self.enemy_collision_point, 5)
+        if self.circle_collision_point is not None and self.circle_collision_distance <= self.allowed_draw_distance:
+            pygame.draw.circle(screen, COLORS.PURPLE, self.circle_collision_point, 5)
 
     def calc_circle_intersect(self, env):
         circle = Circle(env.arena_center, env.current_radius)
@@ -73,4 +92,4 @@ class VisionLine:
             return None
 
     def calc_distance_to(self, point) -> float:
-        return (Vector2(*point) - Vector2(self.start_point)).length() if point is not None else VISION_LINE_LENGTH + 1
+        return (Vector2(*point) - Vector2(self.start_point)).length() if point is not None else self.length + 1
