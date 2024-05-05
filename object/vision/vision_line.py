@@ -51,9 +51,11 @@ class VisionLine:
         direction = Vector2(self.end_point - self.start_point)
         vec2a, vec2b = (Vector2(*point_a) - self.start_point), (Vector2(*point_b) - self.start_point)
         if direction.dot(vec2a) > 0:
-            return vec2a.length(), point_a
+            a_dist = vec2a.length()
+            return (a_dist, point_a) if a_dist <= self.length else (self.length + 1, None)
         else:
-            return vec2b.length(), point_b
+            b_dist = vec2b.length()
+            return (b_dist, point_b) if b_dist <= self.length else (self.length + 1, None)
 
     def get_enemy_collision_distance(self, enemy):
         hitbox_lines = enemy.get_hitbox_lines()

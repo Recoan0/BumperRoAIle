@@ -7,17 +7,20 @@ import pygame
 import pymunk
 from pygame.color import THECOLORS
 from pygame.math import Vector2
+from pymunk import Vec2d
 
 from const.hyper_params import *
 
 
 class BumperCar(pygame.sprite.Sprite, ABC):
-    def __init__(self, car_nr: int, spawn_angle: float, spawn_location: Vector2, color: str,
-                 top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
+    def __init__(self, car_nr: int, spawn_angle: float, spawn_location: Vector2, color: str, top_speed=CAR.TOP_SPEED,
+                 max_steer_speed=CAR.MAX_ANGULAR_VELOCITY, steering_speed=CAR.STEERING_SPEED,
+                 acceleration=CAR.ACCELERATION, mass=CAR.MASS):
         super().__init__()
         self.car_nr = car_nr
         self.height, self.width = CAR.CART_SIZE
         self.top_speed = top_speed
+        self.max_steer_speed = max_steer_speed
         self.steering_speed = steering_speed
         self.acceleration = acceleration
         self.mass = mass
@@ -30,6 +33,8 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         self.body.position = (spawn_location.x, spawn_location.y)
         self.body.angle = -self.angle * np.pi / 180  # Convert to radians and reverse direction
         self.body.car = self  # Store reference to self for collision reward
+        self.body.velocity_func = lambda body, gravity, damping, dt: \
+            self.limit_velocity(body, gravity, damping, dt, self.top_speed)
         self.shape = pymunk.Poly.create_box(self.body, CAR.CART_SIZE)
         self.shape.collision_type = CAR.COLLISION_TYPE
         self.shape.elasticity = 0.5  # Adjust elasticity as needed
@@ -46,6 +51,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
 
     def update(self, space_centre, space_radius) -> None:
         # Update the sprite's position to match the physics body
+        # print(self.body.velocity.length)
         self.angle = (-self.body.angle * 180 / np.pi) % 360
         self.image = pygame.transform.rotate(self.car_image, self.angle)
         self.rect = self.image.get_rect(center=self.body.position)
@@ -55,7 +61,8 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         if not self.is_alive: return
         # Apply forces based on control inputs
         self.body.angular_velocity = \
-            np.clip(self.body.angular_velocity + steering * self.steering_speed, -2, 2)
+            np.clip(self.body.angular_velocity + steering * self.steering_speed,
+                    -self.max_steer_speed, self.max_steer_speed)
 
         force = acceleration * self.acceleration * self.body.mass
         impulse = Vector2(force, 0).rotate(-self.body.angle)
@@ -109,11 +116,25 @@ class BumperCar(pygame.sprite.Sprite, ABC):
     def kill(self) -> None:
         self.is_alive = False
 
-    def get_relative_velocity(self):
+    def get_relative_velocity(self) -> Vec2d:
         return self.body.velocity.rotated(-self.body.angle)
+
+    def get_normalized_relative_velocity(self):
+        return self.get_relative_velocity() / self.top_speed
+
+    def get_normalized_angular_velocity(self):
+        return self.body.angular_velocity / self.max_steer_speed
 
     def get_pymunk(self):
         return self.body, self.shape
+
+    @staticmethod
+    def limit_velocity(body, gravity, damping, dt, max_velocity):
+        pymunk.Body.update_velocity(body, gravity, damping, dt)
+        l = body.velocity.length
+        if l > max_velocity:
+            scale = max_velocity / l
+            body.velocity *= scale
 
     @staticmethod
     def load_car_image():

@@ -47,7 +47,7 @@ class BumperRoAIle(gym.Env):
         self.action_space = gym.spaces.Discrete(ENV.ACTIONS)
         self.observation_space = gym.spaces.Tuple([])
 
-    def reset(self, **kwargs) -> np.ndarray:
+    def reset(self, **kwargs) -> list[np.ndarray]:
         self.agents = pygame.sprite.Group()
         self.current_radius = self.radius
         obs_spaces = []
@@ -117,9 +117,8 @@ class BumperRoAIle(gym.Env):
     def shrink_circle(self):
         self.current_radius -= self.shrink_speed / self.fps
 
-    def get_observations(self) -> np.ndarray:
-        return np.array(list(
-            map(lambda agent: agent.get_observation(self), self.agents)))
+    def get_observations(self) -> list[np.ndarray]:
+        return [agent.get_observation(self) for agent in self.agents]
 
     def get_rewards(self) -> np.ndarray:
         alive_scores = self.get_alives() * SCORES.ALIVE

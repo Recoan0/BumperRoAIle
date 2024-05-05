@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import gymnasium as gym
 from pygame.math import Vector2
@@ -9,24 +11,34 @@ from const.hyper_params import *
 
 class LineVisionCar(BumperCar):
     def __init__(self, car_nr: int, spawn_angle: float, spawn_location: Vector2, color: str,
-                 top_speed: float = 10., steering_speed: float = .1, acceleration: float = 100., mass: float = .1):
-        super().__init__(car_nr, spawn_angle, spawn_location, color, top_speed, steering_speed, acceleration, mass)
+                 vision_length: float = CAR.VISION_LINE_LENGTH, top_speed=CAR.TOP_SPEED,
+                 max_steer_speed=CAR.MAX_ANGULAR_VELOCITY, steering_speed=CAR.STEERING_SPEED,
+                 acceleration=CAR.ACCELERATION, mass=CAR.MASS):
+        super().__init__(car_nr, spawn_angle, spawn_location, color, top_speed,
+                         max_steer_speed, steering_speed, acceleration, mass)
+        self.vision_length = vision_length
         self.vision_lines: list[VisionLine] = self.create_vision_lines()
         self.observation_space = gym.spaces.Box(-1., 1., shape=(3 + len(self.vision_lines),), dtype=np.float32)
 
     def get_observation(self, env) -> np.ndarray:
+        if not self.is_alive:
+            logging.debug("DEAD, RETURNING RANDOM OBS")
+            return self.observation_space.sample()  # return random, does not matter
+
         self.update_vision_lines()
         enemies = env.agents.sprites()
         enemies.remove(self)
         intersect_dists = [line.calculate_collisions(env, enemies) for line in self.vision_lines]
         flattened_intersect_dists = np.concatenate(intersect_dists)
-        obs = np.array([self.body.angular_velocity, *self.get_relative_velocity(), *flattened_intersect_dists])
+        obs = np.array([self.get_normalized_angular_velocity(),
+                        *self.get_normalized_relative_velocity(), *flattened_intersect_dists])
+        print(obs)
         return obs
 
     def create_vision_lines(self) -> list[VisionLine]:
         front_offset, side_offset = self.get_offsets()
         vision_params = self.calculate_vision_line_params(front_offset, side_offset)
-        return [self.get_vision_line(offset, angle) for offset, angle in vision_params]
+        return [self.get_vision_line(offset, angle, self.vision_length) for offset, angle in vision_params]
 
     def update_vision_lines(self):
         new_offset = self.get_offsets()
