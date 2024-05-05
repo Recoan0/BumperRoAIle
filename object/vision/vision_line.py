@@ -30,10 +30,11 @@ class VisionLine:
         if point_a is None or point_b is None:
             return VISION_LINE_LENGTH + 1, None
         direction = Vector2(self.end_point - self.start_point)
-        if direction.dot(point_a) > 0:
-            return (Vector2(*point_a) - Vector2(self.start_point)).length(), point_a
+        vec2a, vec2b = (Vector2(*point_a) - self.start_point), (Vector2(*point_b) - self.start_point)
+        if direction.dot(vec2a) > 0:
+            return vec2a.length(), point_a
         else:
-            return (Vector2(*point_b) - Vector2(self.start_point)).length(), point_b
+            return vec2b.length(), point_b
 
     def get_enemy_collision_distance(self, enemy):
         hitbox_lines = enemy.get_hitbox_lines()

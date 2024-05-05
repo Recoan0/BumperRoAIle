@@ -120,11 +120,10 @@ class BumperRoAIle(gym.Env):
         return np.array(list(map(lambda agent: agent.is_alive, self.agents)))
 
     def create_car(self, color: int) -> LineVisionCar:
-        angle = np.random.uniform(0, 360)
-        offset = Vector2(*np.random.uniform(-self.radius * 0.9, self.radius * 0.9, 2))
-        print(offset)
-        location = Vector2(AREA_CENTRE) + Vector2(offset)
-        return LineVisionCar(angle, location, COLORS[color])
+        car_angle = np.random.uniform(0, 360)
+        offset = Vector2.from_polar((np.random.uniform(self.radius), np.random.uniform(360)))
+        location = Vector2(AREA_CENTRE) + offset
+        return LineVisionCar(car_angle, location, COLORS[color])
 
     @staticmethod
     def car_collision_handler(arbiter, space, data):
@@ -132,7 +131,6 @@ class BumperRoAIle(gym.Env):
         car2 = arbiter.shapes[1].body.car
         car1.last_collided_with = car2
         car2.last_collided_with = car1
-        print(f"COLLISION: {car1}, {car2}")
         return True
 
     def close(self):
