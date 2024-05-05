@@ -16,8 +16,6 @@ class LineVisionCar(BumperCar):
 
     def get_observation(self, env) -> np.ndarray:
         self.vision_lines = self.create_vision_lines()
-
-        # TODO: Calculate closest intersection with circle and enemies for each lines
         enemies = env.agents.sprites()
         enemies.remove(self)
         intersect_dists = [line.calculate_collisions(env, enemies) for line in self.vision_lines]

@@ -48,7 +48,7 @@ class BumperCar(pygame.sprite.Sprite, ABC):
         self.angle = (-self.body.angle * 180 / np.pi) % 360
         self.image = pygame.transform.rotate(self.car_image, self.angle)
         self.rect = self.image.get_rect(center=self.body.position)
-        self.is_alive = self.is_alive and self.is_in_radius(space_centre, space_radius)
+        self.update_alive_status(space_centre, space_radius)
 
     def apply_control(self, acceleration, steering) -> None:
         if not self.is_alive: return
@@ -82,20 +82,28 @@ class BumperCar(pygame.sprite.Sprite, ABC):
     def get_global_point(self, offset):
         return self.body.position + offset
 
-    def check_if_alive(self, space_centre: Vector2, space_radius: float):
+    def update_alive_status(self, space_centre: Vector2, space_radius: float) -> None:
         if not self.is_alive: return
         died = not self.is_in_radius(space_centre, space_radius)
         if died:
             self.attribute_score_to_killer()
+            self.add_score(SCORES.DIED)
+            self.is_alive = False
 
     def is_in_radius(self, space_centre: Vector2, space_radius: float) -> bool:
         return (Vector2(self.body.position) - space_centre).length() < space_radius
 
     def attribute_score_to_killer(self) -> None:
-        self.last_collided_with.add_score(SCORES.KILL)
+        if self.last_collided_with:
+            self.last_collided_with.add_score(SCORES.KILL)
 
     def add_score(self, score: float) -> None:
         self.step_extra_score += score
+
+    def get_and_reset_extra_score(self):
+        step_extra_score = self.step_extra_score
+        self.step_extra_score = 0.
+        return step_extra_score
 
     def kill(self) -> None:
         self.is_alive = False
